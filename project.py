@@ -5,7 +5,7 @@ import random
 
 # === SETTINGS ===
 SCALE_SPEED = 0.3  # global speed scaler
-OBJECT_SPEED = 10 * SCALE_SPEED  # data speed
+OBJECT_SPEED = 120 * SCALE_SPEED  # data speed
 FPS = 60
 DT = 1 / FPS
 
