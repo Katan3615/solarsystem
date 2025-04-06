@@ -169,23 +169,26 @@ def move_data():
 
     for data in data_objects:
         if not data.get("target"):
-            # Найти соседей, которые ещё не посещены
-            neighbors = [sat2 if sat1 == data["current"] else sat1
-                         for sat1, sat2 in mst_edges
-                         if (sat1 == data["current"] or sat2 == data["current"])
-                         and id(sat2 if sat1 == data["current"] else sat1) not in data["visited"]]
+            # Найти соседей, которые ещё не были посещены
+            neighbors = [
+                sat2 if sat1 == data["current"] else sat1
+                for sat1, sat2 in mst_edges
+                if (sat1 == data["current"] or sat2 == data["current"]) and
+                   id(sat2 if sat1 == data["current"] else sat1) not in data["visited"]
+            ]
 
             if neighbors:
-                data["target"] = random.choice(neighbors)
+                target = random.choice(neighbors)
+                data["target"] = target
+                data["target_pos"] = (target["x"], target["y"])  # Зафиксировать координаты цели
             else:
-                # Все соседи посещены — можно удалить
                 to_remove.append(data)
                 continue
 
-        if data.get("target"):
-            tx, ty = data["target"]["x"], data["target"]["y"]
+        if data.get("target_pos"):
+            tx, ty = data["target_pos"]
             dx, dy = tx - data["x"], ty - data["y"]
-            dist = math.sqrt(dx ** 2 + dy ** 2)
+            dist = math.hypot(dx, dy)
             speed = 3
 
             if dist > speed:
@@ -196,8 +199,9 @@ def move_data():
                 data["visited"].add(id(data["target"]))
                 data["current"] = data["target"]
                 data["target"] = None
+                data["target_pos"] = None
 
-    # Удалить данные, которые обошли всех
+    # Удалить данные, которые обошли всех соседей
     for d in to_remove:
         data_objects.remove(d)
 
