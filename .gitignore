@@ -4,6 +4,11 @@ bin/
 *.out
 *.env
 __pycache__/
+.idea/
 *.pyc
 *.pyo
 *.pyd
+build/
+dist/
+*.spec
+.gitattributes
