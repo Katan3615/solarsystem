@@ -3,31 +3,50 @@ import math
 import itertools
 import random
 
-WIDTH, HEIGHT = 1100, 1100
-CENTER_X, CENTER_Y = WIDTH // 2, HEIGHT // 2
+# === SETTINGS ===
+SCALE_SPEED = 0.3  # global speed scaler
+OBJECT_SPEED = 10 * SCALE_SPEED  # data speed
+FPS = 60
+DT = 1 / FPS
+
+# Get screen size
+root = tk.Tk()
+root.deiconify()
+PADDING = 50
+WIDTH, HEIGHT = root.winfo_screenwidth(), root.winfo_screenheight()
+CANVAS_WIDTH = WIDTH - 2 * PADDING
+CANVAS_HEIGHT = HEIGHT - 2 * PADDING
+CENTER_X = CANVAS_WIDTH // 2
+CENTER_Y = CANVAS_HEIGHT // 2
+
+root.title("Solar System")
+root.geometry(f"{WIDTH}x{HEIGHT}")
+canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="black")
+canvas.pack()
+
 sun_r = 84
 
 planets = [
-    {"name": "mercury", "ro": 90.31, "r": 0.4, "speed": 0.047, "color": "tan"},
-    {"name": "venus", "ro": 141.31, "r": 0.9, "speed": 0.035, "color": "orange"},
-    {"name": "earth", "ro": 195.91, "r": 1.3, "speed": 0.03, "color": "lightblue"},
-    {"name": "mars", "ro": 297.31, "r": 1, "speed": 0.024, "color": "brown"},
-    {"name": "jupiter", "ro": 360, "r": 8.4, "speed": 0.013, "color": "peru"},
-    {"name": "saturn", "ro": 410, "r": 6.96, "speed": 0.0097, "color": "khaki"},
-    {"name": "uranus", "ro": 440, "r": 3, "speed": 0.0068, "color": "turquoise"},
-    {"name": "neptune", "ro": 500, "r": 2.88, "speed": 0.0054, "color": "navy"},
+    {"name": "mercury", "ro": 90.31, "r": 0.4, "speed": 0.047 * SCALE_SPEED, "color": "tan"},
+    {"name": "venus", "ro": 141.31, "r": 0.9, "speed": 0.035 * SCALE_SPEED, "color": "orange"},
+    {"name": "earth", "ro": 195.91, "r": 1.3, "speed": 0.03 * SCALE_SPEED, "color": "lightblue"},
+    {"name": "mars", "ro": 297.31, "r": 1, "speed": 0.024 * SCALE_SPEED, "color": "brown"},
+    {"name": "jupiter", "ro": 360, "r": 8.4, "speed": 0.013 * SCALE_SPEED, "color": "peru"},
+    {"name": "saturn", "ro": 410, "r": 6.96, "speed": 0.0097 * SCALE_SPEED, "color": "khaki"},
+    {"name": "uranus", "ro": 440, "r": 3, "speed": 0.0068 * SCALE_SPEED, "color": "turquoise"},
+    {"name": "neptune", "ro": 500, "r": 2.88, "speed": 0.0054 * SCALE_SPEED, "color": "navy"},
 ]
 
 satellites = [
-    {"parent": "sun", "ro": 240, "r": 5, "speed": 0.005, "color": "blue", "cooldown": 0},
-    {"parent": "sun", "ro": 550, "r": 5, "speed": 0.004, "color": "blue", "cooldown": 0},
-    {"parent": "mercury", "ro": 5, "r": 1, "speed": 0.04, "color": "blue", "cooldown": 0},
-    {"parent": "venus", "ro": 15, "r": 2, "speed": 0.035, "color": "blue", "cooldown": 0},
-    {"parent": "mars", "ro": 25, "r": 2, "speed": 0.025, "color": "blue", "cooldown": 0},
-    {"parent": "earth", "ro": 30, "r": 3, "speed": 0.03, "color": "blue", "cooldown": 0},
-    {"parent": "jupiter", "ro": 40, "r": 4, "speed": 0.02, "color": "blue", "cooldown": 0},
-    {"parent": "saturn", "ro": 45, "r": 4, "speed": 0.018, "color": "blue", "cooldown": 0},
-    {"parent": "uranus", "ro": 35, "r": 3, "speed": 0.015, "color": "blue", "cooldown": 0},
+    {"parent": "sun", "ro": 240, "r": 5, "speed": 0.005 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "sun", "ro": 550, "r": 5, "speed": 0.004 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "mercury", "ro": 5, "r": 1, "speed": 0.04 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "venus", "ro": 15, "r": 2, "speed": 0.035 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "mars", "ro": 25, "r": 2, "speed": 0.025 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "earth", "ro": 30, "r": 3, "speed": 0.03 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "jupiter", "ro": 40, "r": 4, "speed": 0.02 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "saturn", "ro": 45, "r": 4, "speed": 0.018 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "uranus", "ro": 35, "r": 3, "speed": 0.015 * SCALE_SPEED, "color": "blue", "cooldown": 0},
 ]
 
 data_objects = []
@@ -67,7 +86,8 @@ def update_orbits():
         sat['x'], sat['y'] = x, y
 
     update_mst()
-    root.after(16, update_orbits)
+    if root.winfo_exists():
+        root.after(16, update_orbits)
 
 
 def generate_data(dt):
@@ -169,24 +189,27 @@ def move_data():
 
     for data in data_objects:
         if not data.get("target"):
-            # Найти соседей, которые ещё не посещены
-            neighbors = [sat2 if sat1 == data["current"] else sat1
-                         for sat1, sat2 in mst_edges
-                         if (sat1 == data["current"] or sat2 == data["current"])
-                         and id(sat2 if sat1 == data["current"] else sat1) not in data["visited"]]
+            # Найти соседей, которые ещё не были посещены
+            neighbors = [
+                sat2 if sat1 == data["current"] else sat1
+                for sat1, sat2 in mst_edges
+                if (sat1 == data["current"] or sat2 == data["current"]) and
+                   id(sat2 if sat1 == data["current"] else sat1) not in data["visited"]
+            ]
 
             if neighbors:
-                data["target"] = random.choice(neighbors)
+                target = random.choice(neighbors)
+                data["target"] = target
+                data["target_pos"] = (target["x"], target["y"])  # Зафиксировать координаты цели
             else:
-                # Все соседи посещены — можно удалить
                 to_remove.append(data)
                 continue
 
-        if data.get("target"):
-            tx, ty = data["target"]["x"], data["target"]["y"]
+        if data.get("target_pos"):
+            tx, ty = data["target_pos"]
             dx, dy = tx - data["x"], ty - data["y"]
-            dist = math.sqrt(dx ** 2 + dy ** 2)
-            speed = 3
+            dist = math.hypot(dx, dy)
+            speed = OBJECT_SPEED
 
             if dist > speed:
                 data["x"] += dx / dist * speed
@@ -196,8 +219,9 @@ def move_data():
                 data["visited"].add(id(data["target"]))
                 data["current"] = data["target"]
                 data["target"] = None
+                data["target_pos"] = None
 
-    # Удалить данные, которые обошли всех
+    # Удалить данные, которые обошли всех соседей
     for d in to_remove:
         data_objects.remove(d)
 
@@ -210,13 +234,10 @@ def update_simulation():
     generate_data(0.016)
     move_data()
     draw_data()
-    root.after(16, update_simulation)
+    if root.winfo_exists():
+        root.after(16, update_simulation)
 
-root = tk.Tk()
-root.title("Solar System")
 
-canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="black")
-canvas.pack()
 
 draw_sun(canvas, CENTER_X, CENTER_Y, sun_r)
 
