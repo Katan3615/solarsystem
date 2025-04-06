@@ -9,6 +9,8 @@ OBJECT_SPEED = 100 * SCALE_SPEED  # data speed
 FPS = 60
 DT = 1 / FPS
 SUN_RADIUS = 84 / 2 # decreased for better visibility
+show_orbits = False
+show_labels = False
 
 # === GUI SETTINGS ===
 root = tk.Tk()
@@ -62,6 +64,7 @@ satellite_configs = [
     {"parent": "jupiter", "ro": 40, "r": 4, "speed": 0.02 * SCALE_SPEED, "color": "blue", "cooldown": 0},
     {"parent": "saturn", "ro": 45, "r": 4, "speed": 0.018 * SCALE_SPEED, "color": "blue", "cooldown": 0},
     {"parent": "uranus", "ro": 35, "r": 3, "speed": 0.015 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "neptune", "ro": 42, "r": 2, "speed": 0.01 * SCALE_SPEED, "color": "blue", "cooldown": 0},
 ]
 
 planet_by_name = {planet.name: planet for planet in planets}
@@ -82,7 +85,18 @@ def update():
 
     for sat in satellites:
         sat.update_position(CENTER_X, CENTER_Y)
-        sat.draw(canvas)    
+        sat.draw(canvas)
+
+    canvas.delete("orbit")  # Clear previous orbits
+    if show_orbits:
+        for planet in planets:
+            planet.draw_orbit(canvas, CENTER_X, CENTER_Y)
+        for sat in satellites:
+            sat.draw_orbit(canvas, CENTER_X, CENTER_Y) 
+
+    if show_labels:
+        for body in planets + satellites:
+            body.draw_label(canvas)
 
     update_mst(canvas, satellites, planets + [sun]) # Update the MST edges
 
@@ -95,6 +109,24 @@ def update_simulation():
     engine.update(DT)
     if root.winfo_exists():
         root.after(int(DT * 1000), update_simulation)
+
+# Bind the "o" key to toggle orbits
+def toggle_orbits(event=None):
+    global show_orbits
+    show_orbits = not show_orbits
+
+def toggle_labels(event=None):
+    global show_labels
+    show_labels = not show_labels
+    for body in planets + satellites:
+        if body.label_object:
+            canvas.itemconfigure(
+                body.label_object,
+                state="normal" if show_labels else "hidden"
+            )
+            
+root.bind("o", toggle_orbits)
+root.bind("l", toggle_labels)
 
 update()
 update_simulation()
