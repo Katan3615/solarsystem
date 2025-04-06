@@ -13,6 +13,8 @@ class CelestialBody:
         self.y = 0
         self.circle = None
         self.cooldown = 0
+        self.label_object = None
+        self.label_text = name
 
     def update_position(self, center_x, center_y):
         self.angle += self.speed
@@ -37,7 +39,7 @@ class CelestialBody:
                 self.x + self.r, self.y + self.r,
                 fill=self.color
             )
-            
+
     def draw_orbit(self, canvas, center_x, center_y):
         if self.parent is None:
           orbit_center_x = center_x
@@ -56,3 +58,18 @@ class CelestialBody:
             tags="orbit"
         )
         
+    def draw_label(self, canvas):
+        if self.label_object:
+            canvas.coords(
+                self.label_object,
+                self.x + self.r + 5, self.y - self.r - 5
+            )
+        else:
+            self.label_object = canvas.create_text(
+                self.x + self.r + 5, self.y - self.r - 5,
+                text=self.label_text,
+                fill="white",
+                font=("Arial", 10),
+                tags="label"
+            )
+
