@@ -1,0 +1,78 @@
+name: Build executables for release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    name: Build Windows EXE
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Build executable
+        run: |
+          pyinstaller --onefile --windowed main.py
+
+      - name: Upload .exe artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: solar-system-windows
+          path: dist/main.exe
+
+  build-linux:
+    name: Build Linux binary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Build Linux binary
+        run: |
+          pyinstaller --onefile main.py
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: solar-system-linux
+          path: dist/main
+
+  release:
+    name: Create GitHub Release
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            solar-system-windows/main.exe
+            solar-system-linux/main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
