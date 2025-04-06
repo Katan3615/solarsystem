@@ -37,3 +37,22 @@ class CelestialBody:
                 self.x + self.r, self.y + self.r,
                 fill=self.color
             )
+            
+    def draw_orbit(self, canvas, center_x, center_y):
+        if self.parent is None:
+          orbit_center_x = center_x
+          orbit_center_y = center_y
+        else:
+            orbit_center_x = self.parent.x
+            orbit_center_y = self.parent.y
+
+        canvas.create_oval(
+            orbit_center_x - self.ro,
+            orbit_center_y - self.ro,
+            orbit_center_x + self.ro,
+            orbit_center_y + self.ro,
+            outline=self.color,
+            dash=(2, 4),
+            tags="orbit"
+        )
+        
