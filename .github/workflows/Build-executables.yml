@@ -27,7 +27,7 @@ jobs:
           pyinstaller --onefile --windowed main.py
 
       - name: Upload .exe artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: solar-system-windows
           path: dist/main.exe
@@ -53,7 +53,7 @@ jobs:
           pyinstaller --onefile main.py
 
       - name: Upload Linux artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: solar-system-linux
           path: dist/main
