@@ -25,10 +25,14 @@ To run:
 python main.py
 ```
 
+### Controls:
+- `l` to display the labels
+- `o` to display the orbits
+
 ### Future Plans
 - Add pause/play buttons and interactive controls (e.g. to add/remove satellites).
 - Improve visualization with smoother animations and trails.
-- Add labels and tooltips for celestial bodies.
+- Add tooltips for celestial bodies.
 - Export simulation frames to images or video.
 - Implement alternative pathfinding (e.g. Dijkstra) and compare efficiency.
 - Enable real-time simulation control (e.g. data flow rate, orbital speed).
@@ -62,10 +66,14 @@ python main.py
 python main.py
 ```
 
+### Управление:
+- `l` для отображения надписей
+- `o` для отображения орбит
+
 ### Планы по развитию
 - Добавить кнопки паузы и запуска, а также возможность управлять симуляцией (добавлять/удалять спутники).
 - Улучшить визуализацию: добавить шлейфы, более плавную анимацию.
-- Подписи объектов, всплывающие подсказки при наведении.
+- Всплывающие подсказки при наведении.
 - Экспорт симуляции в изображение или видео.
 - Реализация альтернативных алгоритмов маршрутизации (например, Дейкстры).
 - Возможность управлять скоростью передачи данных и движением в реальном времени.
