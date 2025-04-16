@@ -64,7 +64,17 @@ satellite_configs = [
     {"parent": "jupiter", "ro": 40, "r": 4, "speed": 0.02 * SCALE_SPEED, "color": "blue", "cooldown": 0},
     {"parent": "saturn", "ro": 45, "r": 4, "speed": 0.018 * SCALE_SPEED, "color": "blue", "cooldown": 0},
     {"parent": "uranus", "ro": 35, "r": 3, "speed": 0.015 * SCALE_SPEED, "color": "blue", "cooldown": 0},
-    {"parent": "neptune", "ro": 42, "r": 2, "speed": 0.01 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "neptune", "ro": 20, "r": 2, "speed": 0.01 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "neptune", "ro": 70, "r": 2, "speed": 0.014 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "uranus", "ro": 45, "r": 3, "speed": 0.03 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "saturn", "ro": 60, "r": 4, "speed": 0.04 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "jupiter", "ro": 30, "r": 4, "speed": 0.01 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "sun", "ro": 600, "r": 5, "speed": 0.004 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "mars", "ro": 34, "r": 2, "speed": 0.06 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "sun", "ro": 900, "r": 5, "speed": 0.006 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "sun", "ro": 850, "r": 5, "speed": 0.0043 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "sun", "ro": 700, "r": 5, "speed": 0.0045 * SCALE_SPEED, "color": "blue", "cooldown": 0},
+    {"parent": "sun", "ro": 800, "r": 5, "speed": 0.0035 * SCALE_SPEED, "color": "blue", "cooldown": 0},
 ]
 
 planet_by_name = {planet.name: planet for planet in planets}
