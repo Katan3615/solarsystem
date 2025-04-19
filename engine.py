@@ -10,6 +10,14 @@ class SimulationEngine:
         self.data_objects = []
         self.object_speed = object_speed
         self.obstacles = obstacles or []
+        self.id_colors = {}
+
+    def _get_color_for_id(self, data_id):
+        if data_id not in self.id_colors:
+            #random color generation in format #RRGGBB
+            color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
+            self.id_colors[data_id] = color
+        return self.id_colors[data_id]
 
     def generate_data(self, dt):
         for sat in self.satellites:
@@ -70,10 +78,11 @@ class SimulationEngine:
     def draw_data(self):
         self.canvas.delete("data_object")
         for data in self.data_objects:
+            color = self._get_color_for_id(data["id"])
             self.canvas.create_rectangle(
                 data["x"] - 2, data["y"] - 2,
                 data["x"] + 2, data["y"] + 2,
-                fill="white", tags="data_object"
+                fill=color, tags="data_object"
             )
 
     def update(self, dt):
