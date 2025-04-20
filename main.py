@@ -5,7 +5,7 @@ from mst import update_mst
 
 # === SETTINGS ===
 SCALE_SPEED = 0.06  # global speed scaler
-OBJECT_SPEED = 100 * SCALE_SPEED  # data speed
+OBJECT_SPEED = 20 * SCALE_SPEED  # data speed
 FPS = 60
 DT = 1 / FPS
 SUN_RADIUS = 84 / 2 # decreased for better visibility
@@ -88,7 +88,6 @@ for conf in satellite_configs:
     sat = CelestialBody(name=conf.get("name", "sat"), parent=parent, **{k: conf[k] for k in ("ro", "r", "speed", "color")})
     satellites.append(sat)
 
-# data_objects = []
 
 def update():
     for planet in planets:
@@ -110,16 +109,18 @@ def update():
         for body in planets + satellites:
             body.draw_label(canvas, CENTER_X, CENTER_Y, zoom=zoom_scale)
 
-    # canvas.create_line(
-    #     CENTER_X - 100, CENTER_Y, CENTER_X + 100, CENTER_Y,
-    #     fill="white", width=2, tags="debug_line"
-    # )
-
     if root.winfo_exists():
         root.after(int(DT * 1000), update)
     update_mst(canvas, satellites, planets + [sun], zoom=zoom_scale, center_x=CENTER_X, center_y=CENTER_Y) # Update the MST edges    
 
-engine = SimulationEngine(satellites, canvas, object_speed=OBJECT_SPEED, obstacles=planets+[sun])
+engine = SimulationEngine(
+    satellites,
+    canvas,
+    object_speed=OBJECT_SPEED,
+    obstacles=planets + [sun],
+    center_x=CENTER_X,
+    center_y=CENTER_Y
+)
 
 def update_simulation():
     engine.update(DT)
