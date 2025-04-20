@@ -93,11 +93,11 @@ for conf in satellite_configs:
 def update():
     for planet in planets:
         planet.update_position(CENTER_X, CENTER_Y)
-        planet.draw(canvas, zoom=zoom_scale)
+        planet.draw(canvas, CENTER_X, CENTER_Y, zoom=zoom_scale)
 
     for sat in satellites:
         sat.update_position(CENTER_X, CENTER_Y)
-        sat.draw(canvas, zoom=zoom_scale)
+        sat.draw(canvas, CENTER_X, CENTER_Y, zoom=zoom_scale)
 
     canvas.delete("orbit")  # Clear previous orbits
     if show_orbits:
@@ -108,12 +108,16 @@ def update():
 
     if show_labels:
         for body in planets + satellites:
-            body.draw_label(canvas, zoom=zoom_scale)
+            body.draw_label(canvas, CENTER_X, CENTER_Y, zoom=zoom_scale)
 
-    update_mst(canvas, satellites, planets + [sun]) # Update the MST edges
+    # canvas.create_line(
+    #     CENTER_X - 100, CENTER_Y, CENTER_X + 100, CENTER_Y,
+    #     fill="white", width=2, tags="debug_line"
+    # )
 
     if root.winfo_exists():
         root.after(int(DT * 1000), update)
+    update_mst(canvas, satellites, planets + [sun], zoom=zoom_scale, center_x=CENTER_X, center_y=CENTER_Y) # Update the MST edges    
 
 engine = SimulationEngine(satellites, canvas, object_speed=OBJECT_SPEED, obstacles=planets+[sun])
 

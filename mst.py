@@ -92,15 +92,23 @@ def find_mst(satellites: list[CelestialBody], obstacles: list[CelestialBody]):
     return mst_edges
 
 
-def update_mst(canvas, satellites: list[CelestialBody], obstacles: list[CelestialBody]):
+def update_mst(canvas, satellites: list[CelestialBody], obstacles: list[CelestialBody], zoom=1.0, center_x=0, center_y=0):
     """Вычисляет MST между спутниками и рисует его рёбра наCanvas."""
     canvas.delete("mst_edge")  # Clear previous MST edges
 
+    print(f"[DEBUG] Drawing MST with zoom={zoom}")
+
     # Get the MST edges
     mst_edges = find_mst(satellites, obstacles)
+
     # Draw the edges on the canvas
     for sat1, sat2 in mst_edges:
+        x1 = center_x + (sat1.x - center_x) * zoom
+        y1 = center_y + (sat1.y - center_y) * zoom
+        x2 = center_x + (sat2.x - center_x) * zoom
+        y2 = center_y + (sat2.y - center_y) * zoom
+
         canvas.create_line(
-            sat1.x, sat1.y, sat2.x, sat2.y,
+            x1, y1, x2, y2,
             fill="blue", dash=(4,2), tags="mst_edge"
         )
