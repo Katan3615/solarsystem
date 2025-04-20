@@ -28,19 +28,25 @@ class CelestialBody:
             self.x = px + self.ro * math.cos(self.angle)
             self.y = py + self.ro * math.sin(self.angle)
 
-    def draw(self, canvas):
+    def draw(self, canvas, zoom=1.0):
+        x = self.x * zoom
+        y = self.y * zoom
+        r = self.r * zoom
+
         if self.circle:
-            canvas.coords(self.circle,
-                          self.x - self.r, self.y - self.r,
-                          self.x + self.r, self.y + self.r)
+            canvas.coords(
+                self.circle,
+                x - r, y - r,
+                x + r, y + r
+                )
         else:
             self.circle = canvas.create_oval(
-                self.x - self.r, self.y - self.r,
-                self.x + self.r, self.y + self.r,
+                x - r, y - r,
+                x + r, y + r,
                 fill=self.color
             )
 
-    def draw_orbit(self, canvas, center_x, center_y):
+    def draw_orbit(self, canvas, center_x, center_y, zoom=1.0):
         if self.parent is None:
           orbit_center_x = center_x
           orbit_center_y = center_y
@@ -48,17 +54,19 @@ class CelestialBody:
             orbit_center_x = self.parent.x
             orbit_center_y = self.parent.y
 
+        ro = self.ro * zoom
+
         canvas.create_oval(
-            orbit_center_x - self.ro,
-            orbit_center_y - self.ro,
-            orbit_center_x + self.ro,
-            orbit_center_y + self.ro,
+            orbit_center_x - ro,
+            orbit_center_y - ro,
+            orbit_center_x + ro,
+            orbit_center_y + ro,
             outline=self.color,
             dash=(2, 4),
             tags="orbit"
         )
         
-    def draw_label(self, canvas):
+    def draw_label(self, canvas, zoom=1.0):
         if self.label_object:
             canvas.coords(
                 self.label_object,

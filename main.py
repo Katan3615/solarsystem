@@ -11,6 +11,8 @@ DT = 1 / FPS
 SUN_RADIUS = 84 / 2 # decreased for better visibility
 show_orbits = False
 show_labels = False
+zoom_scale = 1.0
+ZOOM_STEP = 1.1
 
 # === GUI SETTINGS ===
 root = tk.Tk()
@@ -91,22 +93,22 @@ for conf in satellite_configs:
 def update():
     for planet in planets:
         planet.update_position(CENTER_X, CENTER_Y)
-        planet.draw(canvas)
+        planet.draw(canvas, zoom=zoom_scale)
 
     for sat in satellites:
         sat.update_position(CENTER_X, CENTER_Y)
-        sat.draw(canvas)
+        sat.draw(canvas, zoom=zoom_scale)
 
     canvas.delete("orbit")  # Clear previous orbits
     if show_orbits:
         for planet in planets:
-            planet.draw_orbit(canvas, CENTER_X, CENTER_Y)
+            planet.draw_orbit(canvas, CENTER_X, CENTER_Y, zoom=zoom_scale)
         for sat in satellites:
-            sat.draw_orbit(canvas, CENTER_X, CENTER_Y) 
+            sat.draw_orbit(canvas, CENTER_X, CENTER_Y, zoom=zoom_scale) 
 
     if show_labels:
         for body in planets + satellites:
-            body.draw_label(canvas)
+            body.draw_label(canvas, zoom=zoom_scale)
 
     update_mst(canvas, satellites, planets + [sun]) # Update the MST edges
 
@@ -134,9 +136,20 @@ def toggle_labels(event=None):
                 body.label_object,
                 state="normal" if show_labels else "hidden"
             )
-            
+
+def zoom_in(event=None):
+    global zoom_scale
+    zoom_scale *= ZOOM_STEP
+
+def zoom_out(event=None):
+    global zoom_scale
+    zoom_scale /= ZOOM_STEP
+
+# Binds            
 root.bind("o", toggle_orbits)
 root.bind("l", toggle_labels)
+root.bind("+", lambda e: zoom_in())
+root.bind("-", lambda e: zoom_out())
 
 update()
 update_simulation()
