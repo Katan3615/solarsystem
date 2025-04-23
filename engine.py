@@ -2,18 +2,24 @@
 import random
 import math
 from mst import find_mst
-
+from datetime import datetime, timedelta
 class SimulationEngine:
-    def __init__(self, satellites, canvas, object_speed=3, obstacles=None, center_x=0, center_y=0):
+    def __init__(self, satellites, canvas, object_speed=3, obstacles=None, center_x=0, center_y=0, sim_start_date=None):
         self.satellites = satellites
         self.canvas = canvas
         self.data_objects = []
         self.object_speed = object_speed
         self.obstacles = obstacles or []
         self.id_colors = {}
-        self.current_time = 0.0
         self.center_x = center_x
         self.center_y = center_y
+        self.sim_datetime = sim_start_date
+        self.log_lines = []
+        self.max_log_lines = 7
+        self.log_file = open("log.txt", "w")
+        self.data_counter = 0
+        self.log_manager = None
+
 
     def _get_color_for_id(self, data_id):
         if data_id not in self.id_colors:
@@ -25,11 +31,14 @@ class SimulationEngine:
     def generate_data(self, dt):
         for sat in self.satellites:
             if not hasattr(sat, "cooldown"):
-                sat.cooldown = random.expovariate(1 / 30)
+                sat.cooldown = random.expovariate(1 / 30000) # 3000 - many data
+            data_id = self.data_counter
+            self.data_counter += 1
 
             sat.cooldown -= dt
             if sat.cooldown <= 0:
                 data = {
+                    "id": data_id,
                     "x": sat.x,
                     "y": sat.y,
                     "current": sat,
@@ -38,7 +47,10 @@ class SimulationEngine:
                     "visited": {id(sat)}
                 }
                 self.data_objects.append(data)
-                sat.cooldown = random.expovariate(1 / 30)
+                sat.cooldown = random.expovariate(1 / 30000)
+            if self.log_manager:
+                sender = data["current"]
+                self.log_manager.log(f"Data [#{data_id:06}] has been sent from [{sender.name}, {sender.parent.name if sender.parent else 'sun'}]")
 
     def move_data(self):
         mst_edges = find_mst(self.satellites, self.obstacles)
@@ -60,7 +72,7 @@ class SimulationEngine:
                     dy = target.y - data["y"]
                     distance = math.hypot(dx, dy)
                     time_to_reach = distance / self.object_speed
-                    arrival_time = self.current_time + time_to_reach
+                    arrival_time = (self.sim_datetime + timedelta(seconds=time_to_reach)).timestamp()
 
                     # Predicting the target's future position
                     future_angle = target.angle + target.speed * time_to_reach
@@ -81,22 +93,13 @@ class SimulationEngine:
                     data["target_eta"] = arrival_time
                     data["target_pos"] = (future_x, future_y)
 
-                    # print("\n=== DATA TRANSFER ===")
-                    # print(f"current_time: {self.current_time:.2f}")
-                    # print(f"from: {data['current'].name} -> to: {target.name}")
-                    # print(f"current_pos: ({data['x']:.1f}, {data['y']:.1f})")
-                    # print(f"target.angle: {target.angle:.4f}, speed: {target.speed:.6f}")
-                    # print(f"time_to_reach: {time_to_reach:.2f}")
-                    # print(f"future_angle: {future_angle:.4f}")
-                    # print(f"predicted pos: ({future_x:.1f}, {future_y:.1f})")
-                    # print(f"target now at: ({target.x:.1f}, {target.y:.1f})")
                 else:
                     to_remove.append(data)
                     continue
 
             # Recalculating the target position
-            arrival_time = data.get("target_eta", self.current_time + 1)  # fallback
-            remaining_time = arrival_time - self.current_time
+            arrival_time = data.get("target_eta", self.sim_datetime.timestamp() + 1) # fallback
+            remaining_time = arrival_time - self.sim_datetime.timestamp()
             remaining_time = max(remaining_time, 0)  # не даём уйти в минус
 
             future_angle = data["target"].angle + data["target"].speed * remaining_time
@@ -143,4 +146,18 @@ class SimulationEngine:
         self.generate_data(dt)
         self.move_data()
         self.draw_data()
-        self.current_time += dt
+        self.sim_datetime += timedelta(seconds=dt)
+
+    def log(self, message: str):
+        # Add the line to the list
+        timestamp = self.sim_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        full_message = f"[{timestamp}] {message}"
+        self.log_lines.append(full_message)
+
+        # Set the maximum number of lines
+        if len(self.log_lines) > self.max_log_lines:
+            self.log_lines.pop(0)
+
+        # Print to file
+        self.log_file.write(full_message + "\n")
+        self.log_file.flush()

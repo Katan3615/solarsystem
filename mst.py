@@ -1,72 +1,67 @@
-import itertools
 import math
 from bodies import CelestialBody
 
-def intersects_circle(x1, y1, x2, y2, cx, cy, cr):
-    """Проверяет пересечение отрезка (x1,y1)-(x2,y2) с кругом центра (cx,cy) и радиуса cr."""
-    # 1. Check if either endpoint is inside the circle
-    dist1_sq = (x1 - cx)**2 + (y1 - cy)**2
-    dist2_sq = (x2 - cx)**2 + (y2 - cy)**2
-    if dist1_sq <= cr**2 or dist2_sq <= cr**2:
-        return True  # one of the endpoints is inside the circle
-    
-    # 2. Counting the t parameter of the projection of the center of the circle onto the line defined by the segment
+def intersects_circle(x1, y1, x2, y2, cx, cy, cr_pixels):
+    """Проверяет пересечение отрезка с окружностью (в пикселях)."""
     dx = x2 - x1
     dy = y2 - y1
-    length_sq = dx*dx + dy*dy
-    if length_sq == 0:
-        return False  # if it is a dot, no intersection
-    t = ((cx - x1) * dx + (cy - y1) * dy) / length_sq
 
-    # 3. Check if the projection falls within the segment
-    if t < 0 or t > 1:
-        return False
+    # If the line is a point
+    if dx == 0 and dy == 0:
+        # Просто проверим, попадает ли точка внутрь круга
+        return math.hypot(x1 - cx, y1 - cy) <= cr_pixels
 
-    # 4. Look for the closest point on the segment to the center of the circle
-    closest_x = x1 + t * dx
-    closest_y = y1 + t * dy
-    dist_closest_sq = (closest_x - cx)**2 + (closest_y - cy)**2
-    
-    # Have an intersection if the distance <= cr (touch or cross)
-    return dist_closest_sq <= cr**2
+    fx = x1 - cx
+    fy = y1 - cy
 
-def find_mst(satellites: list[CelestialBody], obstacles: list[CelestialBody]):
-    """Вычисляет MST для списка спутников с учётом препятствий. Возвращает список рёбер (sat1, sat2)."""
+    a = dx * dx + dy * dy
+    b = 2 * (fx * dx + fy * dy)
+    c = fx * fx + fy * fy - cr_pixels * cr_pixels
+
+    discriminant = b * b - 4 * a * c
+    if discriminant < 0:
+        return False  # no intersection
+
+    discriminant = math.sqrt(discriminant)
+    t1 = (-b - discriminant) / (2 * a)
+    t2 = (-b + discriminant) / (2 * a)
+
+    return (0 <= t1 <= 1) or (0 <= t2 <= 1)
+
+
+def find_mst(satellites: list[CelestialBody], obstacles: list[CelestialBody], zoom=1.0):
     n = len(satellites)
-    edges = []  # list of edges (distance, i, j)
+    edges = []
 
-    # 1. Make a list of all edges between satellites
     for i in range(n):
-        for j in range(i+1, n):
+        for j in range(i + 1, n):
             sat1 = satellites[i]
             sat2 = satellites[j]
-            # Check every obstacle for intersection with the edge (sat1, sat2)
             blocked = False
+
             for obs in obstacles:
-                if intersects_circle(sat1.x, sat1.y, sat2.x, sat2.y, obs.x, obs.y, obs.r):
+                obs_r_px = obs.r * obs.pixels_per_au * zoom
+                if intersects_circle(sat1.x, sat1.y, sat2.x, sat2.y, obs.x, obs.y, obs_r_px):
                     blocked = True
                     break
             if blocked:
-                continue  # can not
-            # Counting the distance between satellites
+                continue
+
             dx = sat1.x - sat2.x
             dy = sat1.y - sat2.y
-            dist_sq = dx*dx + dy*dy
+            dist_sq = dx * dx + dy * dy
             edges.append((dist_sq, i, j))
-    # 2. Sorting edges by distance
-    edges.sort(key=lambda e: e[0])
 
-    # 3. Initializing the union-find structure for Kruskal's algorithm
+    edges.sort(key=lambda e: e[0])
     parent = list(range(n))
     rank = [0] * n
+
     def find_set(a):
-        # Find the root of the set containing a. Path compression is used to speed up future queries.
         if parent[a] != a:
             parent[a] = find_set(parent[a])
-            a = parent[a]
-        return a
+        return parent[a]
+
     def union_set(a, b):
-        # Union the sets containing a and b. Union by rank is used to keep the tree flat.
         ra = find_set(a)
         rb = find_set(b)
         if ra == rb:
@@ -80,35 +75,21 @@ def find_mst(satellites: list[CelestialBody], obstacles: list[CelestialBody]):
             rank[ra] += 1
         return True
 
-    # Choose the right edges to form the MST
     mst_edges = []
     for dist_sq, i, j in edges:
         if union_set(i, j):
-            # If the edge is added to the MST, add it to the list of edges
             mst_edges.append((satellites[i], satellites[j]))
         if len(mst_edges) == n - 1:
-            break  # MST is complete (n-1 edges for n vertices)
-    
+            break
+
     return mst_edges
 
-
 def update_mst(canvas, satellites: list[CelestialBody], obstacles: list[CelestialBody], zoom=1.0, center_x=0, center_y=0):
-    """Вычисляет MST между спутниками и рисует его рёбра наCanvas."""
-    canvas.delete("mst_edge")  # Clear previous MST edges
+    canvas.delete("mst_edge")
+    mst_edges = find_mst(satellites, obstacles, zoom=zoom)
 
-    print(f"[DEBUG] Drawing MST with zoom={zoom}")
-
-    # Get the MST edges
-    mst_edges = find_mst(satellites, obstacles)
-
-    # Draw the edges on the canvas
     for sat1, sat2 in mst_edges:
-        x1 = center_x + (sat1.x - center_x) * zoom
-        y1 = center_y + (sat1.y - center_y) * zoom
-        x2 = center_x + (sat2.x - center_x) * zoom
-        y2 = center_y + (sat2.y - center_y) * zoom
-
         canvas.create_line(
-            x1, y1, x2, y2,
-            fill="blue", dash=(4,2), tags="mst_edge"
+            sat1.x, sat1.y, sat2.x, sat2.y,
+            fill="blue", dash=(4, 2), tags="mst_edge"
         )
