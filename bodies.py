@@ -32,7 +32,7 @@ class CelestialBody:
             self.x = px + scaled_ro * math.cos(self.angle)
             self.y = py + scaled_ro * math.sin(self.angle)
         
-        print(f"[{self.name}] angle += {self.speed:.2e} => {self.angle:.4f}")
+        # print(f"[{self.name}] angle += {self.speed:.2e} => {self.angle:.4f}") # Commented out log
 
     # def _scale_pos(self, center_x, center_y, zoom):
     #     x = center_x + (self.x - center_x) * zoom

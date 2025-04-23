@@ -1,7 +1,7 @@
 # engine.py
 import random
 import math
-from mst import find_mst
+from mst import find_mst, intersects_circle
 from datetime import datetime, timedelta
 class SimulationEngine:
     def __init__(self, satellites, canvas, object_speed=3, obstacles=None, center_x=0, center_y=0, sim_start_date=None):
@@ -48,88 +48,120 @@ class SimulationEngine:
                 }
                 self.data_objects.append(data)
                 sat.cooldown = random.expovariate(1 / 30000)
+                # print(f"DEBUG ENGINE: Generated Data [{data_id:06}] at [{sat.name}]") # Commented log
                 if self.log_manager:
                     sender = data["current"]
                     self.log_manager.log(f"Data [#{data_id:06}] has been sent from [{sender.name}, {sender.parent.name if sender.parent else 'sun'}]")
 
-    def move_data(self):
-        mst_edges = find_mst(self.satellites, self.obstacles)
+    def move_data(self, zoom):
+        mst_edges = find_mst(self.satellites, self.obstacles, zoom)
         to_remove = []
 
         for data in self.data_objects:
             if not data.get("target"):
-                neighbors = [
-                    sat2 if sat1 == data["current"] else sat1
-                    for sat1, sat2 in mst_edges
-                    if (sat1 == data["current"] or sat2 == data["current"]) and
-                    id(sat2 if sat1 == data["current"] else sat1) not in data["visited"]
+                # Find potential neighbors from MST edges connected to the current satellite
+                potential_neighbors = []
+                current_sat = data["current"]
+                for sat1, sat2 in mst_edges:
+                    neighbor = None
+                    if sat1 == current_sat:
+                        neighbor = sat2
+                    elif sat2 == current_sat:
+                        neighbor = sat1
+                    
+                    if neighbor:
+                        potential_neighbors.append(neighbor)
+
+                # Filter neighbors: must be a satellite and not visited
+                valid_neighbors = [
+                    neighbor for neighbor in potential_neighbors
+                    if neighbor in self.satellites and id(neighbor) not in data["visited"]
                 ]
-                if neighbors:
-                    target = random.choice(neighbors)
 
-                    # Predicting the time to reach the target
-                    dx = target.x - data["x"]
-                    dy = target.y - data["y"]
-                    distance = math.hypot(dx, dy)
-                    time_to_reach = distance / self.object_speed
-                    arrival_time = (self.sim_datetime + timedelta(seconds=time_to_reach)).timestamp()
+                target = None # Initialize target
+                while valid_neighbors: # Loop until we find an unblocked neighbor or run out
+                    potential_target = random.choice(valid_neighbors)
+                    path_blocked = False
+                    for obs in self.obstacles:
+                        # Use current positions for the immediate path check
+                        if intersects_circle(data["x"], data["y"], potential_target.x, potential_target.y, 
+                                             obs.x, obs.y, obs.r * obs.pixels_per_au * zoom): # Use passed zoom parameter
+                            # print(f"DEBUG ENGINE: Immediate path Data [{data['id']}] -> [{potential_target.name}] blocked by [{obs.name}]. Trying another neighbor.") # Commented log
+                            path_blocked = True
+                            valid_neighbors.remove(potential_target) # Remove blocked target from options
+                            break # Stop checking obstacles for this target
+                    
+                    if not path_blocked:
+                        target = potential_target # Found an unblocked target
+                        # print(f"DEBUG ENGINE: Data [{data['id']}] at [{data['current'].name}] chose UNBLOCKED target [{target.name}] from neighbors: {[n.name for n in valid_neighbors+[target]]}") # Commented log
+                        break # Exit the while loop
 
-                    # Predicting the target's future position
-                    future_angle = target.angle + target.speed * time_to_reach
-                    future_angle %= 2 * math.pi
-
-                    # The orbit center
-                    if target.parent:
-                        cx, cy = target.parent.x, target.parent.y
-                    else:
-                        cx, cy = self.center_x, self.center_y
-
-                    #  Predicting the position
-                    future_x = cx + target.ro * math.cos(future_angle)
-                    future_y = cy + target.ro * math.sin(future_angle)
-
-                    # Setting up the target
+                if target: # Proceed only if an unblocked target was found
+                    # Set target and target position to the current location of the target satellite
                     data["target"] = target
-                    data["target_eta"] = arrival_time
-                    data["target_pos"] = (future_x, future_y)
+                    data["target_pos"] = (target.x, target.y) # Use target's current position
 
                 else:
+                    # No valid/unblocked neighbors found
+                    if not any(neighbor in self.satellites and id(neighbor) not in data["visited"] for neighbor in potential_neighbors): 
+                         # print(f"DEBUG ENGINE: Data [{data['id']}] at [{data['current'].name}] has no valid neighbors left. Marking for removal.") # Commented log
+                         pass # Keep the logic, just comment the print
+                    else:
+                         # print(f"DEBUG ENGINE: Data [{data['id']}] at [{data['current'].name}] had neighbors, but all immediate paths were blocked. Marking for removal.") # Commented log
+                         pass # Keep the logic, just comment the print
                     to_remove.append(data)
                     continue
 
-            # Recalculating the target position
-            arrival_time = data.get("target_eta", self.sim_datetime.timestamp() + 1) # fallback
-            remaining_time = arrival_time - self.sim_datetime.timestamp()
-            remaining_time = max(remaining_time, 0)  # не даём уйти в минус
+            # --- Movement towards target_pos --- 
+            if data.get("target_pos"):
+                tx, ty = data["target_pos"] # Get target coordinates (current pos of target sat)
+                
+                # Recalculate dx, dy towards the static target position each frame
+                dx = tx - data["x"]
+                dy = ty - data["y"] 
+                dist = math.hypot(dx, dy)
 
-            future_angle = data["target"].angle + data["target"].speed * remaining_time
-            future_angle %= 2 * math.pi
+                if dist > self.object_speed: # Check if not already at the target position
+                    # Calculate the next potential position towards the static target point
+                    step_dx = dx / dist * self.object_speed
+                    step_dy = dy / dist * self.object_speed
+                    next_x = data["x"] + step_dx
+                    next_y = data["y"] + step_dy
 
-            if data["target"].parent:
-                parent = data["target"].parent
-                pcx, pcy = (parent.x, parent.y)
-            else:
-                pcx, pcy = self.center_x, self.center_y
+                    # Check for collision on this step
+                    collision_detected = False
+                    for obs in self.obstacles:
+                        # Check if the step segment intersects the obstacle
+                        if intersects_circle(data["x"], data["y"], next_x, next_y, 
+                                             obs.x, obs.y, obs.r * obs.pixels_per_au * zoom):
+                            # print(f"DEBUG ENGINE: Data [{data['id']}] movement {data['current'].name} -> {data['target'].name} collided with [{obs.name}] during transit. Removing.") # Commented log
+                            collision_detected = True
+                            break # Stop checking obstacles
+                    
+                    if collision_detected:
+                        to_remove.append(data) # Mark for removal if collision detected
+                        # Clear target info so it doesn't try to move further this frame
+                        data["target"] = None 
+                        data["target_pos"] = None
+                        continue # Skip to the next data object
+                    else:
+                        # No collision, take the step
+                        data["x"] = next_x
+                        data["y"] = next_y
+                else:
+                    # Reached the target position
+                    # print(f"DEBUG ENGINE: Data [{data['id']}] arriving at TARGET POSITION for [{data['target'].name}] from [{data['current'].name}]") # Commented log
+                    data["x"], data["y"] = tx, ty # Snap to target position
+                    data["visited"].add(id(data["target"]))
+                    data["current"] = data["target"]
+                    # print(f"DEBUG ENGINE: Data [{data['id']}] new current is [{data['current'].name}]") # Commented log
+                    data["target"] = None
+                    data["target_pos"] = None # Clear target position
 
-            tx = pcx + data["target"].ro * math.cos(future_angle)
-            ty = pcy + data["target"].ro * math.sin(future_angle)
 
-            # === движение к предсказанным координатам ===
-            dx, dy = tx - data["x"], ty - data["y"]
-            dist = math.hypot(dx, dy)
-
-            if dist > self.object_speed:
-                data["x"] += dx / dist * self.object_speed
-                data["y"] += dy / dist * self.object_speed
-            else:
-                data["x"], data["y"] = tx, ty
-                data["visited"].add(id(data["target"]))
-                data["current"] = data["target"]
-                data["target"] = None
-                data["target_eta"] = None
-
-
+        # Remove data packets marked for removal
         for d in to_remove:
+            # print(f"DEBUG ENGINE: Removing data [{d['id']}] finally.") # Commented log
             self.data_objects.remove(d)
 
     def draw_data(self):
@@ -142,9 +174,9 @@ class SimulationEngine:
                 fill=color, tags="data_object"
             )
 
-    def update(self, dt):
+    def update(self, dt, zoom):
         self.generate_data(dt)
-        self.move_data()
+        self.move_data(zoom)
         self.draw_data()
         self.sim_datetime += timedelta(seconds=dt)
 

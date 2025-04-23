@@ -42,6 +42,7 @@ def find_mst(satellites: list[CelestialBody], obstacles: list[CelestialBody], zo
             for obs in obstacles:
                 obs_r_px = obs.r * obs.pixels_per_au * zoom
                 if intersects_circle(sat1.x, sat1.y, sat2.x, sat2.y, obs.x, obs.y, obs_r_px):
+                    # print(f"DEBUG MST: Path [{sat1.name}] <-> [{sat2.name}] blocked by [{obs.name}]") # Commented log
                     blocked = True
                     break
             if blocked:
@@ -78,6 +79,7 @@ def find_mst(satellites: list[CelestialBody], obstacles: list[CelestialBody], zo
     mst_edges = []
     for dist_sq, i, j in edges:
         if union_set(i, j):
+            # print(f"DEBUG MST: Added edge [{satellites[i].name}] <-> [{satellites[j].name}]") # Commented log
             mst_edges.append((satellites[i], satellites[j]))
         if len(mst_edges) == n - 1:
             break
