@@ -1,4 +1,4 @@
-# The speed is increased to 1m times, but data speed (light speed) slowed down to 20 times 
+# The speed is increased to 1m times, but data speed (light speed) slowed down to 20 times
 
 import tkinter as tk
 from bodies import CelestialBody

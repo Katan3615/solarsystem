@@ -9,6 +9,8 @@ This project is an interactive simulation of a simplified Solar System using Pyt
 - Orbiting planets and satellites.
 - Data generation from satellites and its transfer across the network.
 - Dynamic computation and drawing of the **Minimum Spanning Tree (MST)** between satellites, avoiding planet/sun collisions.
+- Simulation control: **Pause/Resume** functionality and **adjustable speed** (1x, 0.1x, 0.01x).
+- Detailed **logging** of simulation events (start, pause/resume, speed changes, data generation/arrival) to `log.txt`.
 
 ### Algorithms Used
 - **Circular motion update**: each celestial body moves along its orbit based on angular velocity.
@@ -28,6 +30,9 @@ python main.py
 ### Controls:
 - `l` to display the labels
 - `o` to display the orbits
+- `p` to **pause/resume** the simulation
+- `s` to cycle through **simulation speeds** (Normal 1x -> Slow 0.1x -> Very Slow 0.01x -> Normal 1x)
+- `+` / `-` to zoom in / zoom out
 
 ### Future Plans
 - Add pause/play buttons and interactive controls (e.g. to add/remove satellites).
@@ -50,6 +55,8 @@ python main.py
 - Орбиты планет и спутников.
 - Генерация и маршрутизация данных по сети.
 - Вычисление **минимального остовного дерева (MST)** для спутников, с учётом препятствий в виде планет и солнца.
+- Управление симуляцией: функция **паузы/возобновления** и **регулируемая скорость** (1x, 0.1x, 0.01x).
+- Детальное **логирование** событий симуляции (старт, пауза/возобновление, смена скорости, генерация/прибытие данных) в файл `log.txt`.
 
 ### Используемые алгоритмы
 - Обновление позиции по орбите по угловой скорости.
@@ -69,6 +76,9 @@ python main.py
 ### Управление:
 - `l` для отображения надписей
 - `o` для отображения орбит
+- `p` для **паузы/возобновления** симуляции
+- `s` для переключения **скорости симуляции** (Нормальная 1x -> Медленная 0.1x -> Очень медленная 0.01x -> Нормальная 1x)
+- `+` / `-` для приближения / отдаления
 
 ### Планы по развитию
 - Добавить кнопки паузы и запуска, а также возможность управлять симуляцией (добавлять/удалять спутники).

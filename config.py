@@ -12,7 +12,7 @@ DT = 1 / FPS # Base time step, might not be directly used if sim_dt is calculate
 # === PHYSICS / UNITS ===
 EARTH_ORBITAL_SPEED = 2 * pi / SECONDS_IN_YEAR  # rad/sec (in simulation time)
 BASE_OBJECT_SPEED = 0.002 # Base speed in AU / sim_sec. Speed of light is approx 0.002 AU/sec
-DATA_SPEED_MULTIPLIER = 1 # Make data visually faster relative to planets
+DATA_SPEED_MULTIPLIER = 100 # ===== TO SOLVE! =====
 EFFECTIVE_DATA_SPEED = BASE_OBJECT_SPEED * DATA_SPEED_MULTIPLIER # Speed passed to engine
 
 # === OBJECT SETTINGS ===
