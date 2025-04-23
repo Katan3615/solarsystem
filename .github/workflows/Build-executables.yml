@@ -58,9 +58,38 @@ jobs:
           name: solar-system-linux
           path: dist/main
 
+  build-macos-arm:
+    name: Build macOS ARM App
+    runs-on: macos-14 # Use an ARM64 runner
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Build macOS App # Changed to build .app bundle
+        run: |
+          pyinstaller --onefile --windowed --name SolarSystem main.py 
+          # pyinstaller --windowed --name SolarSystem main.py # Use this line instead if you want a .app bundle
+          # Note: If using --onefile, the output in dist/ will be just 'SolarSystem'
+          # If using --windowed without --onefile, it will be dist/SolarSystem.app
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: solar-system-macos-arm
+          path: dist/SolarSystem # Adjust path if using .app bundle (e.g., dist/SolarSystem.app)
+
   release:
     name: Create GitHub Release
-    needs: [build-windows, build-linux]
+    needs: [build-windows, build-linux, build-macos-arm] # Add build-macos-arm to needs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -74,5 +103,6 @@ jobs:
           files: |
             solar-system-windows/main.exe
             solar-system-linux/main
+            solar-system-macos-arm/SolarSystem # Add the macos artifact
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
