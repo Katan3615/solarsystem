@@ -20,7 +20,7 @@ SIM_START_DATE = datetime(2161, 5, 19)
 
 # --- Simulation Control State ---
 is_paused = False
-sim_speed_factor = 1.0 # 1.0 for normal, 0.1 for slow
+sim_speed_factor = 1.0 # 1.0 for normal, 0.1 for slow, 0.01 for very slow
 # ------------------------------
 
 FPS = 120
@@ -28,8 +28,7 @@ DT = 1 / FPS
 
 EARTH_ORBITAL_SPEED = 2 * pi / SECONDS_IN_YEAR  # rad/sec (in simulation time ≈ 1.99e-7 rad/sec)
 
-BASE_OBJECT_SPEED = 0.002 * SIM_SPEED / 30 # in AU / sim_sec , 300_000 km/sec
-# OBJECT_SPEED = 0.002 * SIM_SPEED # <<< REMOVE OR COMMENT THIS
+BASE_OBJECT_SPEED = 2 # Base speed in AU / sim_sec. Speed of light is approx 0.002 AU/sec
 
 # === SETTINGS ===
 SUN_RADIUS_AU = 0.00465 * 28 # increased for better visibility
@@ -142,9 +141,9 @@ for i, conf in enumerate(satellite_configs):
 log_manager = LogManager(canvas, WIDTH, HEIGHT)
 real_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 sim_time_str = SIM_START_DATE.strftime("%Y-%m-%d %H:%M:%S")
-log_manager.log(f"🚀 Simulation started", timestamp=real_time_str)
-log_manager.log(f"🕒 Sim time: {sim_time_str}")
-log_manager.log(f"ℹ️ Press 'P' to pause/resume, 'S' to toggle speed (1x / 0.1x)") # Add info log
+log_manager.log(f"Simulation started", timestamp=real_time_str)
+log_manager.log(f"Sim time: {sim_time_str}")
+log_manager.log(f"Press 'P' to pause/resume, 'S' to cycle speed (1x / 0.1x / 0.01x)") # Update info log
 
 def update():
     # Real time
@@ -255,12 +254,16 @@ def toggle_pause(event=None):
 
 def toggle_speed(event=None):
     global sim_speed_factor
+    # Cycle through 1.0 -> 0.1 -> 0.01 -> 1.0
     if sim_speed_factor == 1.0:
         sim_speed_factor = 0.1
-        log_message = "Simulation speed set to Slow (0.1x)"
-    else:
+        log_message = "<< Simulation speed set to Slow (0.1x)"
+    elif sim_speed_factor == 0.1:
+        sim_speed_factor = 0.01
+        log_message = "<< << Simulation speed set to Very Slow (0.01x)"
+    else: # Must be 0.01
         sim_speed_factor = 1.0
-        log_message = "Simulation speed set to Normal (1x)"
+        log_message = ">> Simulation speed set to Normal (1x)"
     log_manager.log(log_message) # Log speed change
 
 # Binds            

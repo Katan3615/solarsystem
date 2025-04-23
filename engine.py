@@ -8,17 +8,21 @@ class SimulationEngine:
         self.satellites = satellites
         self.canvas = canvas
         self.data_objects = []
-        self.object_speed = object_speed
+        self.object_speed = object_speed # Base speed in AU/sim_sec
         self.obstacles = obstacles or []
         self.id_colors = {}
         self.center_x = center_x
         self.center_y = center_y
         self.sim_datetime = sim_start_date
-        self.log_lines = []
-        self.max_log_lines = 7
-        self.log_file = open("log.txt", "w")
-        self.data_counter = 0
+        # Remove old log attributes
+        # self.log_lines = []
+        # self.max_log_lines = 7
+        # self.log_file = open("log.txt", "w")
+        self.data_counter = 0 # Ensure counter starts at 0
         self.log_manager = None
+        self.last_generation_hour = -1 # Initialize to -1 to trigger generation on first hour
+        self.tracked_packet_ids = set() # Set to store IDs we want to debug
+        self.max_tracked_packets = 5    # Limit the number of packets to track
 
 
     def _get_color_for_id(self, data_id):
@@ -29,32 +33,46 @@ class SimulationEngine:
         return self.id_colors[data_id]
 
     def generate_data(self, dt):
-        for sat in self.satellites:
-            if not hasattr(sat, "cooldown"):
-                sat.cooldown = random.expovariate(1 / 300000) # 3000 - many data
+        # Generate data once per simulation hour
+        if not self.satellites: # Don't generate if no satellites exist
+            return
+            
+        current_hour = self.sim_datetime.hour
+        if current_hour != self.last_generation_hour:
+            # Hour has changed, generate one packet from a random satellite
+            sat = random.choice(self.satellites)
+            
+            self.data_counter += 1 # Increment counter ONLY when generating
             data_id = self.data_counter
-            self.data_counter += 1
+            generation_time = self.sim_datetime # Capture generation time
 
-            sat.cooldown -= dt
-            if sat.cooldown <= 0:
-                data = {
-                    "id": data_id,
-                    "x": sat.x,
-                    "y": sat.y,
-                    "current": sat,
-                    "target": None,
-                    "id": random.randint(10000, 99999),
-                    "visited": {id(sat)}
-                }
-                self.data_objects.append(data)
-                sat.cooldown = random.expovariate(1 / 300000)
-                # print(f"DEBUG ENGINE: Generated Data [{data_id:06}] at [{sat.name}]") # Commented log
-                if self.log_manager:
-                    sender = data["current"]
-                    self.log_manager.log(f"Data [#{data_id:06}] has been sent from [{sender.name}, {sender.parent.name if sender.parent else 'sun'}]")
+            # --- Track first few packet IDs --- 
+            if len(self.tracked_packet_ids) < self.max_tracked_packets:
+                self.tracked_packet_ids.add(data_id)
+                print(f"[DEBUG] Now tracking packet ID: {data_id}\n") # Log which IDs are tracked
+            # ----------------------------------
 
-    def move_data(self, zoom):
-        mst_edges = find_mst(self.satellites, self.obstacles, zoom)
+            data = {
+                "id": data_id, # Use the counter as the primary ID
+                "x": sat.x,
+                "y": sat.y,
+                "current": sat,
+                "target": None,
+                "visited": {id(sat)},
+                "timestamp": generation_time # Store generation/departure time
+            }
+            self.data_objects.append(data)
+            
+            # Log using LogManager with sim_datetime
+            if self.log_manager:
+                sender = data["current"]
+                self.log_manager.log(f"Data [#{data_id:06}] sent from [{sender.name}, {sender.parent.name if sender.parent else 'sun'}]", timestamp=generation_time)
+
+            # Update the last generation hour
+            self.last_generation_hour = current_hour
+            
+    def move_data(self, zoom, sim_dt): # Add sim_dt parameter
+        mst_edges = find_mst(self.satellites, self.obstacles, zoom) # Pass zoom to find_mst as well
         to_remove = []
 
         for data in self.data_objects:
@@ -84,26 +102,23 @@ class SimulationEngine:
                     path_blocked = False
                     for obs in self.obstacles:
                         # Use current positions for the immediate path check
-                        if intersects_circle(data["x"], data["y"], potential_target.x, potential_target.y, 
+                        if intersects_circle(data["x"], data["y"], potential_target.x, potential_target.y,
                                              obs.x, obs.y, obs.r * obs.pixels_per_au * zoom): # Use passed zoom parameter
                             # print(f"DEBUG ENGINE: Immediate path Data [{data['id']}] -> [{potential_target.name}] blocked by [{obs.name}]. Trying another neighbor.") # Commented log
                             path_blocked = True
                             valid_neighbors.remove(potential_target) # Remove blocked target from options
                             break # Stop checking obstacles for this target
-                    
+
                     if not path_blocked:
                         target = potential_target # Found an unblocked target
                         # print(f"DEBUG ENGINE: Data [{data['id']}] at [{data['current'].name}] chose UNBLOCKED target [{target.name}] from neighbors: {[n.name for n in valid_neighbors+[target]]}") # Commented log
                         break # Exit the while loop
 
                 if target: # Proceed only if an unblocked target was found
-                    # Set target and target position to the current location of the target satellite
                     data["target"] = target
-                    data["target_pos"] = (target.x, target.y) # Use target's current position
-
                 else:
                     # No valid/unblocked neighbors found
-                    if not any(neighbor in self.satellites and id(neighbor) not in data["visited"] for neighbor in potential_neighbors): 
+                    if not any(neighbor in self.satellites and id(neighbor) not in data["visited"] for neighbor in potential_neighbors):
                          # print(f"DEBUG ENGINE: Data [{data['id']}] at [{data['current'].name}] has no valid neighbors left. Marking for removal.") # Commented log
                          pass # Keep the logic, just comment the print
                     else:
@@ -112,19 +127,33 @@ class SimulationEngine:
                     to_remove.append(data)
                     continue
 
-            # --- Movement towards target_pos --- 
-            if data.get("target_pos"):
-                tx, ty = data["target_pos"] # Get target coordinates (current pos of target sat)
+            # --- Movement towards target (DYNAMICALLY recalculate target position) --- 
+            if data.get("target"):
+                # Get target's CURRENT position each frame
+                target_satellite = data["target"]
+                tx = target_satellite.x
+                ty = target_satellite.y
                 
-                # Recalculate dx, dy towards the static target position each frame
+                # Recalculate dx, dy towards the current target position each frame
                 dx = tx - data["x"]
-                dy = ty - data["y"] 
+                dy = ty - data["y"]
                 dist = math.hypot(dx, dy)
 
-                if dist > self.object_speed: # Check if not already at the target position
+                # Calculate distance to move in this frame based on sim_dt
+                distance_this_step = self.object_speed * sim_dt
+
+                # --- Conditional Detailed Debug Log --- 
+                if data['id'] in self.tracked_packet_ids: # Only print for tracked IDs
+                    print(f"[MOVE DEBUG] SimTime: {self.sim_datetime.strftime('%Y-%m-%d %H:%M:%S')}, sim_dt: {sim_dt:.4f}, PktID: {data['id']}, "
+                          f"Current: ({data['x']:.3f},{data['y']:.3f}), Target: {target_satellite.name}({tx:.3f},{ty:.3f}), " # Log target name and current coords
+                          f"Dist: {dist:.4f}, BaseSpeed: {self.object_speed:.5f}, StepDist: {distance_this_step:.6f}\n", flush=True)
+                # ------------------------------------
+
+                if dist > distance_this_step: # Check if distance to target is greater than movement this frame
                     # Calculate the next potential position towards the static target point
-                    step_dx = dx / dist * self.object_speed
-                    step_dy = dy / dist * self.object_speed
+                    # Move by distance_this_step in the correct direction
+                    step_dx = dx / dist * distance_this_step
+                    step_dy = dy / dist * distance_this_step
                     next_x = data["x"] + step_dx
                     next_y = data["y"] + step_dy
 
@@ -132,31 +161,46 @@ class SimulationEngine:
                     collision_detected = False
                     for obs in self.obstacles:
                         # Check if the step segment intersects the obstacle
-                        if intersects_circle(data["x"], data["y"], next_x, next_y, 
+                        if intersects_circle(data["x"], data["y"], next_x, next_y,
                                              obs.x, obs.y, obs.r * obs.pixels_per_au * zoom):
                             # print(f"DEBUG ENGINE: Data [{data['id']}] movement {data['current'].name} -> {data['target'].name} collided with [{obs.name}] during transit. Removing.") # Commented log
                             collision_detected = True
                             break # Stop checking obstacles
-                    
+
                     if collision_detected:
                         to_remove.append(data) # Mark for removal if collision detected
                         # Clear target info so it doesn't try to move further this frame
-                        data["target"] = None 
-                        data["target_pos"] = None
+                        data["target"] = None
                         continue # Skip to the next data object
                     else:
                         # No collision, take the step
                         data["x"] = next_x
                         data["y"] = next_y
                 else:
-                    # Reached the target position
+                    # Reached the target satellite (or close enough)
+                    packet_id = data["id"]
+                    arrival_time = self.sim_datetime
+                    departure_time = data["timestamp"]
+                    travel_time = arrival_time - departure_time
+                    source = data["current"]
+                    destination = data["target"] # Target is still set here
+
+                    # Log arrival via LogManager
+                    if self.log_manager:
+                         # Format timedelta nicely (e.g., total seconds with precision)
+                        travel_time_str = f"{travel_time.total_seconds():.2f}s"
+                        self.log_manager.log(f"Data [#{packet_id:06}] arrived at [{destination.name}] from [{source.name}] in {travel_time_str}", timestamp=arrival_time)
+
                     # print(f"DEBUG ENGINE: Data [{data['id']}] arriving at TARGET POSITION for [{data['target'].name}] from [{data['current'].name}]") # Commented log
                     data["x"], data["y"] = tx, ty # Snap to target position
                     data["visited"].add(id(data["target"]))
                     data["current"] = data["target"]
+                    data["timestamp"] = arrival_time # Update timestamp for next hop BEFORE clearing target
                     # print(f"DEBUG ENGINE: Data [{data['id']}] new current is [{data['current'].name}]") # Commented log
                     data["target"] = None
-                    data["target_pos"] = None # Clear target position
+
+                    if data['id'] in self.tracked_packet_ids: # Log arrival for tracked packets
+                         print(f"[MOVE DEBUG] PktID: {packet_id} ARRIVED at {destination.name} ({tx:.3f},{ty:.3f}) from {source.name}. TravelTime: {travel_time.total_seconds():.2f}s", flush=True) # Log arrival coords
 
 
         # Remove data packets marked for removal
@@ -176,20 +220,6 @@ class SimulationEngine:
 
     def update(self, dt, zoom):
         self.generate_data(dt)
-        self.move_data(zoom)
+        self.move_data(zoom, dt) # Pass sim_dt (dt) here
         self.draw_data()
         self.sim_datetime += timedelta(seconds=dt)
-
-    def log(self, message: str):
-        # Add the line to the list
-        timestamp = self.sim_datetime.strftime("%Y-%m-%d %H:%M:%S")
-        full_message = f"[{timestamp}] {message}"
-        self.log_lines.append(full_message)
-
-        # Set the maximum number of lines
-        if len(self.log_lines) > self.max_log_lines:
-            self.log_lines.pop(0)
-
-        # Print to file
-        self.log_file.write(full_message + "\n")
-        self.log_file.flush()
