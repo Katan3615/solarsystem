@@ -138,7 +138,7 @@ for i, conf in enumerate(satellite_configs):
     satellites.append(sat)
 
 # === Logging simulation start ===
-log_manager = LogManager(canvas, WIDTH, HEIGHT)
+log_manager = LogManager(canvas, WIDTH, HEIGHT, max_lines=10)
 real_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 sim_time_str = SIM_START_DATE.strftime("%Y-%m-%d %H:%M:%S")
 log_manager.log(f"Simulation started", timestamp=real_time_str)
