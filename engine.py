@@ -31,7 +31,7 @@ class SimulationEngine:
     def generate_data(self, dt):
         for sat in self.satellites:
             if not hasattr(sat, "cooldown"):
-                sat.cooldown = random.expovariate(1 / 30000) # 3000 - many data
+                sat.cooldown = random.expovariate(1 / 300000) # 3000 - many data
             data_id = self.data_counter
             self.data_counter += 1
 
@@ -47,7 +47,7 @@ class SimulationEngine:
                     "visited": {id(sat)}
                 }
                 self.data_objects.append(data)
-                sat.cooldown = random.expovariate(1 / 30000)
+                sat.cooldown = random.expovariate(1 / 300000)
                 # print(f"DEBUG ENGINE: Generated Data [{data_id:06}] at [{sat.name}]") # Commented log
                 if self.log_manager:
                     sender = data["current"]

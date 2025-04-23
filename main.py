@@ -1,3 +1,5 @@
+# The speed is increased to 1m times, but data speed (light speed) slowed down to 20 times 
+
 import tkinter as tk
 from bodies import CelestialBody
 from engine import SimulationEngine
@@ -13,7 +15,7 @@ last_real_time = time.time()
 # === TIME ===
 SECONDS_IN_YEAR = 31_557_600  # 365.25 * 24 * 60 * 60
 SECONDS_IN_DAY = 86400
-SIM_SPEED = 1000  # 1000 times faster than real time
+SIM_SPEED = 1_000_000  # 1000000 times faster than real time
 SIM_START_DATE = datetime(2161, 5, 19)
 
 # --- Simulation Control State ---
@@ -21,15 +23,16 @@ is_paused = False
 sim_speed_factor = 1.0 # 1.0 for normal, 0.1 for slow
 # ------------------------------
 
-FPS = 60
+FPS = 120
 DT = 1 / FPS
 
-EARTH_ORBITAL_SPEED = 2 * pi / SECONDS_IN_YEAR  # ≈ 1.99e-7 rad/sec
+EARTH_ORBITAL_SPEED = 2 * pi / SECONDS_IN_YEAR  # rad/sec (in simulation time ≈ 1.99e-7 rad/sec)
 
-OBJECT_SPEED = 0.002 * SIM_SPEED # в а.е./сек (примерно, 300_000 км/сек / SIM_SPEED)
+BASE_OBJECT_SPEED = 0.002 * SIM_SPEED / 30 # in AU / sim_sec , 300_000 km/sec
+# OBJECT_SPEED = 0.002 * SIM_SPEED # <<< REMOVE OR COMMENT THIS
 
 # === SETTINGS ===
-SUN_RADIUS_AU = 0.00465 * 30 # increased for better visibility
+SUN_RADIUS_AU = 0.00465 * 28 # increased for better visibility
  
 show_orbits = False
 show_labels = False
@@ -71,14 +74,14 @@ sun.y = CENTER_Y
 
 # === Planet Initialization ===
 planet_configs = [
-    {"name": "mercury", "ro": 0.387,        "r": 0.015, "speed": SIM_SPEED * 2 * pi / (87.97 * SECONDS_IN_DAY),     "color": "tan"},
-    {"name": "venus",   "ro": 0.723,        "r": 0.035, "speed": SIM_SPEED * 2 * pi / (224.7 * SECONDS_IN_DAY),     "color": "orange"},
-    {"name": "earth",   "ro": 1.000,        "r": 0.04,  "speed": SIM_SPEED * EARTH_ORBITAL_SPEED,                   "color": "lightblue"},
-    {"name": "mars",    "ro": 1.524,        "r": 0.03,  "speed": SIM_SPEED * 2 * pi / (686.98 * SECONDS_IN_DAY),    "color": "brown"},
-    {"name": "jupiter", "ro": 5.203 * 0.7,  "r": 0.09,  "speed": SIM_SPEED * 2 * pi / (4332.59 * SECONDS_IN_DAY),   "color": "peru"},
-    {"name": "saturn",  "ro": 9.537 * 0.6,  "r": 0.07,  "speed": SIM_SPEED * 2 * pi / (10759.22 * SECONDS_IN_DAY),  "color": "khaki"},
-    {"name": "uranus",  "ro": 19.191 * 0.5, "r": 0.05,  "speed": SIM_SPEED * 2 * pi / (30688.5 * SECONDS_IN_DAY),   "color": "turquoise"},
-    {"name": "neptune", "ro": 30.07 * 0.4,  "r": 0.05,  "speed": SIM_SPEED * 2 * pi / (60195 * SECONDS_IN_DAY),     "color": "navy"},
+    {"name": "mercury", "ro": 0.387,        "r": 0.015, "speed": 2 * pi / (87.97 * SECONDS_IN_DAY),     "color": "tan"},
+    {"name": "venus",   "ro": 0.723,        "r": 0.035, "speed": 2 * pi / (224.7 * SECONDS_IN_DAY),     "color": "orange"},
+    {"name": "earth",   "ro": 1.000,        "r": 0.04,  "speed": EARTH_ORBITAL_SPEED,                   "color": "lightblue"},
+    {"name": "mars",    "ro": 1.524,        "r": 0.03,  "speed": 2 * pi / (686.98 * SECONDS_IN_DAY),    "color": "brown"},
+    {"name": "jupiter", "ro": 5.203 * 0.7,  "r": 0.09,  "speed": 2 * pi / (4332.59 * SECONDS_IN_DAY),   "color": "peru"},
+    {"name": "saturn",  "ro": 9.537 * 0.6,  "r": 0.07,  "speed": 2 * pi / (10759.22 * SECONDS_IN_DAY),  "color": "khaki"},
+    {"name": "uranus",  "ro": 19.191 * 0.5, "r": 0.05,  "speed": 2 * pi / (30688.5 * SECONDS_IN_DAY),   "color": "turquoise"},
+    {"name": "neptune", "ro": 30.07 * 0.4,  "r": 0.05,  "speed": 2 * pi / (60195 * SECONDS_IN_DAY),     "color": "navy"},
 ]
 
 planets = [
@@ -88,33 +91,33 @@ planets = [
 
 satellite_configs = [
     # Sun satellites
-    {"parent": "sun", "ro": 240 / 195.91, "r": 0.01, "speed": SIM_SPEED * 2 * pi / (600 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_1"},
-    {"parent": "sun", "ro": 550 / 195.91, "r": 0.01, "speed": SIM_SPEED * 2 * pi / (1000 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_2"},
+    {"parent": "sun", "ro": 240 / 195.91, "r": 0.01, "speed": 2 * pi / (600 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_1"},
+    {"parent": "sun", "ro": 550 / 195.91, "r": 0.01, "speed": 2 * pi / (1000 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_2"},
 
     # Planets satellites
-    {"parent": "mercury", "ro": 5 / 195.91,     "r": 0.003, "speed": SIM_SPEED * 2 * pi / (10 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "merc_sat_1"},
-    {"parent": "venus",   "ro": 15 / 195.91,    "r": 0.004, "speed": SIM_SPEED * 2 * pi / (30 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "venus_sat_1"},
-    {"parent": "earth",   "ro": 30 / 195.91,    "r": 0.005, "speed": SIM_SPEED * 2 * pi / (27.3 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "moon"},
-    {"parent": "mars",    "ro": 25 / 195.91,    "r": 0.004, "speed": SIM_SPEED * 2 * pi / (1.3 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "mars_sat_1"},
+    {"parent": "mercury", "ro": 5 / 195.91,     "r": 0.003, "speed": 2 * pi / (10 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "merc_sat_1"},
+    {"parent": "venus",   "ro": 15 / 195.91,    "r": 0.004, "speed": 2 * pi / (30 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "venus_sat_1"},
+    {"parent": "earth",   "ro": 30 / 195.91,    "r": 0.005, "speed": 2 * pi / (27.3 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "moon"},
+    {"parent": "mars",    "ro": 25 / 195.91,    "r": 0.004, "speed": 2 * pi / (1.3 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "mars_sat_1"},
 
-    {"parent": "jupiter", "ro": 30 / 195.91,    "r": 0.005, "speed": SIM_SPEED * 2 * pi / (1.8 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "io"},
-    {"parent": "jupiter", "ro": 40 / 195.91,    "r": 0.005, "speed": SIM_SPEED * 2 * pi / (3.6 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "europa"},
+    {"parent": "jupiter", "ro": 30 / 195.91,    "r": 0.005, "speed": 2 * pi / (1.8 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "io"},
+    {"parent": "jupiter", "ro": 40 / 195.91,    "r": 0.005, "speed": 2 * pi / (3.6 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "europa"},
 
-    {"parent": "saturn",  "ro": 45 / 195.91,    "r": 0.005, "speed": SIM_SPEED * 2 * pi / (1.4 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "pan"},
-    {"parent": "saturn",  "ro": 60 / 195.91,    "r": 0.006, "speed": SIM_SPEED * 2 * pi / (16 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "titan"},
+    {"parent": "saturn",  "ro": 45 / 195.91,    "r": 0.005, "speed": 2 * pi / (1.4 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "pan"},
+    {"parent": "saturn",  "ro": 60 / 195.91,    "r": 0.006, "speed": 2 * pi / (16 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "titan"},
 
-    {"parent": "uranus",  "ro": 35 / 195.91,    "r": 0.004, "speed": SIM_SPEED * 2 * pi / (2 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "uran_sat_1"},
-    {"parent": "uranus",  "ro": 45 / 195.91,    "r": 0.004, "speed": SIM_SPEED * 2 * pi / (4 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "uran_sat_2"},
+    {"parent": "uranus",  "ro": 35 / 195.91,    "r": 0.004, "speed": 2 * pi / (2 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "uran_sat_1"},
+    {"parent": "uranus",  "ro": 45 / 195.91,    "r": 0.004, "speed": 2 * pi / (4 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "uran_sat_2"},
 
-    {"parent": "neptune", "ro": 20 / 195.91,    "r": 0.003, "speed": SIM_SPEED * 2 * pi / (1 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "nept_sat_1"},
-    {"parent": "neptune", "ro": 70 / 195.91,    "r": 0.004, "speed": SIM_SPEED * 2 * pi / (5 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "nept_sat_2"},
+    {"parent": "neptune", "ro": 20 / 195.91,    "r": 0.003, "speed": 2 * pi / (1 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "nept_sat_1"},
+    {"parent": "neptune", "ro": 70 / 195.91,    "r": 0.004, "speed": 2 * pi / (5 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "nept_sat_2"},
 
     # Far objects on the sun's orbit
-    {"parent": "sun", "ro": 600 / 195.91, "r": 0.01, "speed": SIM_SPEED * 2 * pi / (1500 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_far_1"},
-    {"parent": "sun", "ro": 700 / 195.91, "r": 0.01, "speed": SIM_SPEED * 2 * pi / (2000 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_far_2"},
-    {"parent": "sun", "ro": 800 / 195.91, "r": 0.01, "speed": SIM_SPEED * 2 * pi / (2500 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_far_3"},
-    {"parent": "sun", "ro": 850 / 195.91, "r": 0.01, "speed": SIM_SPEED * 2 * pi / (2800 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_far_4"},
-    {"parent": "sun", "ro": 900 / 195.91, "r": 0.01, "speed": SIM_SPEED * 2 * pi / (3200 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_far_5"},
+    {"parent": "sun", "ro": 600 / 195.91, "r": 0.01, "speed": 2 * pi / (1500 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_far_1"},
+    {"parent": "sun", "ro": 700 / 195.91, "r": 0.01, "speed": 2 * pi / (2000 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_far_2"},
+    {"parent": "sun", "ro": 800 / 195.91, "r": 0.01, "speed": 2 * pi / (2500 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_far_3"},
+    {"parent": "sun", "ro": 850 / 195.91, "r": 0.01, "speed": 2 * pi / (2800 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_far_4"},
+    {"parent": "sun", "ro": 900 / 195.91, "r": 0.01, "speed": 2 * pi / (3200 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_far_5"},
 ]
 
 planet_by_name = {planet.name: planet for planet in planets}
@@ -213,7 +216,7 @@ def update():
 engine = SimulationEngine(
     satellites,
     canvas,
-    object_speed=OBJECT_SPEED,
+    object_speed=BASE_OBJECT_SPEED, # Use base speed
     obstacles=planets + [sun],
     center_x=CENTER_X,
     center_y=CENTER_Y,
