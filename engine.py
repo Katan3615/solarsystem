@@ -48,9 +48,9 @@ class SimulationEngine:
                 }
                 self.data_objects.append(data)
                 sat.cooldown = random.expovariate(1 / 30000)
-            if self.log_manager:
-                sender = data["current"]
-                self.log_manager.log(f"Data [#{data_id:06}] has been sent from [{sender.name}, {sender.parent.name if sender.parent else 'sun'}]")
+                if self.log_manager:
+                    sender = data["current"]
+                    self.log_manager.log(f"Data [#{data_id:06}] has been sent from [{sender.name}, {sender.parent.name if sender.parent else 'sun'}]")
 
     def move_data(self):
         mst_edges = find_mst(self.satellites, self.obstacles)
