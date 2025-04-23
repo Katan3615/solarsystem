@@ -19,7 +19,7 @@ last_real_time = time.time()
 
 # --- Simulation Control State ---
 is_paused = False
-sim_speed_factor = 1.0 # 1.0 for normal, 0.1 for slow
+sim_speed_factor = 1.0 # 1.0 for normal, 0.1 for slow, 0.01 for very slow
 # ------------------------------
  
 show_orbits = config.INITIAL_SHOW_ORBITS

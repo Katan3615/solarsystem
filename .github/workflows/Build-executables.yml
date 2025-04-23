@@ -25,12 +25,13 @@ jobs:
       - name: Build executable
         run: |
           pyinstaller --onefile --windowed main.py
+          pyinstaller --onefile --windowed --name mstsim_winx64 main.py
 
       - name: Upload .exe artifact
         uses: actions/upload-artifact@v4
         with:
           name: solar-system-windows
-          path: dist/main.exe
+          path: dist/mstsim_winx64.exe
 
   build-linux:
     name: Build Linux binary
@@ -51,12 +52,13 @@ jobs:
       - name: Build Linux binary
         run: |
           pyinstaller --onefile main.py
+          pyinstaller --onefile --name mstsim_linux64 main.py
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
           name: solar-system-linux
-          path: dist/main
+          path: dist/mstsim_linux64
 
   build-macos-arm:
     name: Build macOS ARM App
@@ -77,6 +79,7 @@ jobs:
       - name: Build macOS App # Changed to build .app bundle
         run: |
           pyinstaller --onefile --windowed --name SolarSystem main.py 
+          pyinstaller --onefile --windowed --name mstsim_macos_arm main.py
           # pyinstaller --windowed --name SolarSystem main.py # Use this line instead if you want a .app bundle
           # Note: If using --onefile, the output in dist/ will be just 'SolarSystem'
           # If using --windowed without --onefile, it will be dist/SolarSystem.app
@@ -85,7 +88,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: solar-system-macos-arm
-          path: dist/SolarSystem # Adjust path if using .app bundle (e.g., dist/SolarSystem.app)
+          path: dist/mstsim_macos_arm
 
   release:
     name: Create GitHub Release
@@ -101,8 +104,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            solar-system-windows/main.exe
-            solar-system-linux/main
-            solar-system-macos-arm/SolarSystem # Add the macos artifact
+            solar-system-windows/mstsim_winx64.exe
+            solar-system-linux/mstsim_linux64
+            solar-system-macos-arm/mstsim_macos_arm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
