@@ -18,8 +18,10 @@ class CelestialBody:
         self.label_object = None
         self.label_text = name
 
-    def update_position(self, center_x, center_y, zoom=1.0):
-        self.angle += self.speed
+    def update_position(self, center_x, center_y, sim_dt, zoom=1.0):
+        # Calculate angle change based on speed and simulation time step
+        delta_angle = self.speed * sim_dt 
+        self.angle += delta_angle
         self.angle %= 2 * math.pi
 
         scaled_ro = self.ro * zoom * self.pixels_per_au

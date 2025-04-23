@@ -13,8 +13,13 @@ last_real_time = time.time()
 # === TIME ===
 SECONDS_IN_YEAR = 31_557_600  # 365.25 * 24 * 60 * 60
 SECONDS_IN_DAY = 86400
-SIM_SPEED = 10000  # 1000 times faster than real time
+SIM_SPEED = 1000  # 1000 times faster than real time
 SIM_START_DATE = datetime(2161, 5, 19)
+
+# --- Simulation Control State ---
+is_paused = False
+sim_speed_factor = 1.0 # 1.0 for normal, 0.1 for slow
+# ------------------------------
 
 FPS = 60
 DT = 1 / FPS
@@ -66,14 +71,14 @@ sun.y = CENTER_Y
 
 # === Planet Initialization ===
 planet_configs = [
-    {"name": "mercury", "ro": 0.387, "r": 0.015, "speed": SIM_SPEED * 2 * pi / (87.97 * 24 * 3600), "color": "tan"},
-    {"name": "venus",   "ro": 0.723, "r": 0.035, "speed": SIM_SPEED * 2 * pi / (224.7 * 24 * 3600), "color": "orange"},
-    {"name": "earth",   "ro": 1.000, "r": 0.04,  "speed": SIM_SPEED * EARTH_ORBITAL_SPEED,          "color": "lightblue"},
-    {"name": "mars",    "ro": 1.524, "r": 0.03,  "speed": SIM_SPEED * 2 * pi / (686.98 * 24 * 3600), "color": "brown"},
-    {"name": "jupiter", "ro": 5.203 * 0.7, "r": 0.09,  "speed": SIM_SPEED * 2 * pi / (4332.59 * 24 * 3600), "color": "peru"},
-    {"name": "saturn",  "ro": 9.537 * 0.6, "r": 0.07,  "speed": SIM_SPEED * 2 * pi / (10759.22 * 24 * 3600), "color": "khaki"},
-    {"name": "uranus",  "ro": 19.191 * 0.5, "r": 0.05, "speed": SIM_SPEED * 2 * pi / (30688.5 * 24 * 3600), "color": "turquoise"},
-    {"name": "neptune", "ro": 30.07 * 0.4, "r": 0.05,  "speed": SIM_SPEED * 2 * pi / (60195 * 24 * 3600),   "color": "navy"},
+    {"name": "mercury", "ro": 0.387,        "r": 0.015, "speed": SIM_SPEED * 2 * pi / (87.97 * SECONDS_IN_DAY),     "color": "tan"},
+    {"name": "venus",   "ro": 0.723,        "r": 0.035, "speed": SIM_SPEED * 2 * pi / (224.7 * SECONDS_IN_DAY),     "color": "orange"},
+    {"name": "earth",   "ro": 1.000,        "r": 0.04,  "speed": SIM_SPEED * EARTH_ORBITAL_SPEED,                   "color": "lightblue"},
+    {"name": "mars",    "ro": 1.524,        "r": 0.03,  "speed": SIM_SPEED * 2 * pi / (686.98 * SECONDS_IN_DAY),    "color": "brown"},
+    {"name": "jupiter", "ro": 5.203 * 0.7,  "r": 0.09,  "speed": SIM_SPEED * 2 * pi / (4332.59 * SECONDS_IN_DAY),   "color": "peru"},
+    {"name": "saturn",  "ro": 9.537 * 0.6,  "r": 0.07,  "speed": SIM_SPEED * 2 * pi / (10759.22 * SECONDS_IN_DAY),  "color": "khaki"},
+    {"name": "uranus",  "ro": 19.191 * 0.5, "r": 0.05,  "speed": SIM_SPEED * 2 * pi / (30688.5 * SECONDS_IN_DAY),   "color": "turquoise"},
+    {"name": "neptune", "ro": 30.07 * 0.4,  "r": 0.05,  "speed": SIM_SPEED * 2 * pi / (60195 * SECONDS_IN_DAY),     "color": "navy"},
 ]
 
 planets = [
@@ -87,22 +92,22 @@ satellite_configs = [
     {"parent": "sun", "ro": 550 / 195.91, "r": 0.01, "speed": SIM_SPEED * 2 * pi / (1000 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_2"},
 
     # Planets satellites
-    {"parent": "mercury", "ro": 5 / 195.91, "r": 0.003, "speed": SIM_SPEED * 2 * pi / (10 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "merc_sat_1"},
-    {"parent": "venus",   "ro": 15 / 195.91, "r": 0.004, "speed": SIM_SPEED * 2 * pi / (30 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "venus_sat_1"},
-    {"parent": "earth",   "ro": 30 / 195.91, "r": 0.005, "speed": SIM_SPEED * 2 * pi / (27.3 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "moon"},
-    {"parent": "mars",    "ro": 25 / 195.91, "r": 0.004, "speed": SIM_SPEED * 2 * pi / (1.3 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "mars_sat_1"},
+    {"parent": "mercury", "ro": 5 / 195.91,     "r": 0.003, "speed": SIM_SPEED * 2 * pi / (10 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "merc_sat_1"},
+    {"parent": "venus",   "ro": 15 / 195.91,    "r": 0.004, "speed": SIM_SPEED * 2 * pi / (30 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "venus_sat_1"},
+    {"parent": "earth",   "ro": 30 / 195.91,    "r": 0.005, "speed": SIM_SPEED * 2 * pi / (27.3 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "moon"},
+    {"parent": "mars",    "ro": 25 / 195.91,    "r": 0.004, "speed": SIM_SPEED * 2 * pi / (1.3 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "mars_sat_1"},
 
-    {"parent": "jupiter", "ro": 30 / 195.91, "r": 0.005, "speed": SIM_SPEED * 2 * pi / (1.8 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "io"},
-    {"parent": "jupiter", "ro": 40 / 195.91, "r": 0.005, "speed": SIM_SPEED * 2 * pi / (3.6 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "europa"},
+    {"parent": "jupiter", "ro": 30 / 195.91,    "r": 0.005, "speed": SIM_SPEED * 2 * pi / (1.8 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "io"},
+    {"parent": "jupiter", "ro": 40 / 195.91,    "r": 0.005, "speed": SIM_SPEED * 2 * pi / (3.6 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "europa"},
 
-    {"parent": "saturn",  "ro": 45 / 195.91, "r": 0.005, "speed": SIM_SPEED * 2 * pi / (1.4 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "pan"},
-    {"parent": "saturn",  "ro": 60 / 195.91, "r": 0.006, "speed": SIM_SPEED * 2 * pi / (16 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "titan"},
+    {"parent": "saturn",  "ro": 45 / 195.91,    "r": 0.005, "speed": SIM_SPEED * 2 * pi / (1.4 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "pan"},
+    {"parent": "saturn",  "ro": 60 / 195.91,    "r": 0.006, "speed": SIM_SPEED * 2 * pi / (16 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "titan"},
 
-    {"parent": "uranus",  "ro": 35 / 195.91, "r": 0.004, "speed": SIM_SPEED * 2 * pi / (2 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "uran_sat_1"},
-    {"parent": "uranus",  "ro": 45 / 195.91, "r": 0.004, "speed": SIM_SPEED * 2 * pi / (4 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "uran_sat_2"},
+    {"parent": "uranus",  "ro": 35 / 195.91,    "r": 0.004, "speed": SIM_SPEED * 2 * pi / (2 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "uran_sat_1"},
+    {"parent": "uranus",  "ro": 45 / 195.91,    "r": 0.004, "speed": SIM_SPEED * 2 * pi / (4 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "uran_sat_2"},
 
-    {"parent": "neptune", "ro": 20 / 195.91, "r": 0.003, "speed": SIM_SPEED * 2 * pi / (1 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "nept_sat_1"},
-    {"parent": "neptune", "ro": 70 / 195.91, "r": 0.004, "speed": SIM_SPEED * 2 * pi / (5 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "nept_sat_2"},
+    {"parent": "neptune", "ro": 20 / 195.91,    "r": 0.003, "speed": SIM_SPEED * 2 * pi / (1 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "nept_sat_1"},
+    {"parent": "neptune", "ro": 70 / 195.91,    "r": 0.004, "speed": SIM_SPEED * 2 * pi / (5 * SECONDS_IN_DAY * 10), "color": "blue", "cooldown": 0, "name": "nept_sat_2"},
 
     # Far objects on the sun's orbit
     {"parent": "sun", "ro": 600 / 195.91, "r": 0.01, "speed": SIM_SPEED * 2 * pi / (1500 * SECONDS_IN_DAY), "color": "blue", "cooldown": 0, "name": "sun_sat_far_1"},
@@ -136,6 +141,7 @@ real_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 sim_time_str = SIM_START_DATE.strftime("%Y-%m-%d %H:%M:%S")
 log_manager.log(f"🚀 Simulation started", timestamp=real_time_str)
 log_manager.log(f"🕒 Sim time: {sim_time_str}")
+log_manager.log(f"ℹ️ Press 'P' to pause/resume, 'S' to toggle speed (1x / 0.1x)") # Add info log
 
 def update():
     # Real time
@@ -144,18 +150,30 @@ def update():
     real_dt = now - last_real_time
     last_real_time = now
 
-    sim_dt = real_dt * SIM_SPEED
+    # --- Pause Check --- 
+    if is_paused:
+        # Still need to schedule next update to keep GUI responsive
+        if root.winfo_exists():
+            root.after(int(DT * 1000), update)
+        return # Skip simulation update if paused
+    # ---------------------
+
+    # --- Effective Speed Calculation ---
+    effective_sim_speed = SIM_SPEED * sim_speed_factor
+    # -----------------------------------
+
+    sim_dt = real_dt * effective_sim_speed # Use effective speed
     engine.update(sim_dt, zoom_scale)
 
-    sun.update_position(CENTER_X, CENTER_Y, zoom=zoom_scale)
+    sun.update_position(CENTER_X, CENTER_Y, sim_dt, zoom=zoom_scale)
     sun.draw(canvas, CENTER_X, CENTER_Y, zoom=zoom_scale)
 
     for planet in planets:
-        planet.update_position(CENTER_X, CENTER_Y, zoom=zoom_scale)
+        planet.update_position(CENTER_X, CENTER_Y, sim_dt, zoom=zoom_scale)
         planet.draw(canvas, CENTER_X, CENTER_Y, zoom=zoom_scale)
 
     for sat in satellites:
-        sat.update_position(CENTER_X, CENTER_Y, zoom=zoom_scale)
+        sat.update_position(CENTER_X, CENTER_Y, sim_dt, zoom=zoom_scale)
         sat.draw(canvas, CENTER_X, CENTER_Y, zoom=zoom_scale)
 
     canvas.delete("orbit")  # Clear previous orbits
@@ -226,7 +244,25 @@ def zoom_out(event=None):
     global zoom_scale
     zoom_scale /= ZOOM_STEP
 
+def toggle_pause(event=None):
+    global is_paused
+    is_paused = not is_paused
+    log_message = "Simulation paused" if is_paused else "Simulation resumed"
+    log_manager.log(log_message) # Log pause/resume
+
+def toggle_speed(event=None):
+    global sim_speed_factor
+    if sim_speed_factor == 1.0:
+        sim_speed_factor = 0.1
+        log_message = "Simulation speed set to Slow (0.1x)"
+    else:
+        sim_speed_factor = 1.0
+        log_message = "Simulation speed set to Normal (1x)"
+    log_manager.log(log_message) # Log speed change
+
 # Binds            
+root.bind("p", toggle_pause) # Bind P for pause
+root.bind("s", toggle_speed) # Bind S for speed
 root.bind("o", toggle_orbits)
 root.bind("l", toggle_labels)
 root.bind("+", lambda e: zoom_in())
